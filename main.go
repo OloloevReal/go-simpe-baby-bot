@@ -5,11 +5,14 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/OloloevReal/go-simple-baby-bot/goenvs"
 	"github.com/OloloevReal/go-simple-baby-bot/heroku"
 	"github.com/OloloevReal/go-simple-baby-bot/store"
+	"github.com/OloloevReal/go-simple-baby-bot/telegram"
 	log "github.com/OloloevReal/go-simple-log"
+	"golang.org/x/net/proxy"
 )
 
 const version = "0.0.1"
@@ -28,6 +31,8 @@ type AppEnvs struct {
 type App struct {
 	envs  *AppEnvs
 	store store.Store
+	ctx   context.Context
+	bot   telegram.TelegramBot
 }
 
 func init() {
@@ -82,13 +87,38 @@ func main() {
 		log.Fatalf("[FATAL] failed to make data store, %s", err)
 	}
 
+	var prxy proxy.Dialer
+	if envs.TelegramProxy != "" {
+		prxy, err = proxy.SOCKS5("tcp", envs.TelegramProxy, nil, proxy.Direct)
+		if err != nil {
+			log.Fatalf("[FATAL] failed to set proxy %s", envs.TelegramProxy)
+		}
+	}
+
+	bot, err := telegram.NewTelegram(&telegram.TelegramConfig{Token: envs.TelegramToken,
+		Proxy:   prxy,
+		Debug:   envs.Debug,
+		Timeout: time.Second * 7,
+	})
+	if err != nil {
+		log.Fatalf("[FATAL] failed to make a telegram bot")
+	}
+
 	app := App{
 		envs:  envs,
 		store: store,
+		ctx:   ctx,
+		bot:   *bot,
 	}
 
-	_ = app
+	app.Start()
 
+}
+
+func (a *App) Start() {
+	a.bot.Run(a.ctx)
+	// log.Println("Waiting to finish")
+	// <-a.ctx.Done()
 }
 
 func makeDataStore(envs *AppEnvs) (storeReturned store.Store, err error) {
