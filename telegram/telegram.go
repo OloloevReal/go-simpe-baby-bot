@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/OloloevReal/go-simple-baby-bot/store"
 	log "github.com/OloloevReal/go-simple-log"
 
 	tgbotapiv5 "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -28,6 +29,7 @@ type TelegramConfig struct {
 	Token   string
 	Proxy   proxy.Dialer
 	Timeout time.Duration
+	Store   store.Store
 	Debug   bool
 }
 
@@ -97,6 +99,42 @@ func (b *TelegramBot) Run(ctx context.Context) {
 						continue
 					}
 					_ = handler
+
+				} else if update.Message != nil && len(update.Message.Text) > 0 {
+					var userID int
+					userID, err := b.getUserID(&update)
+					if err != nil {
+						log.Printf("[ERROR] can't get UserID, %s", err)
+					}
+					log.Printf("[DEBUG] received text message from user=%d: \"%s\"", userID, update.Message.Text)
+
+					value := new(store.BValue)
+					value.Timestamp = time.Now()
+					value.UserID = userID
+
+					if err := value.ParseValue(update.Message.Text); err != nil {
+						log.Printf("[ERROR] %s", err)
+					} else {
+
+						ctx, cancel := context.WithTimeout(context.TODO(), time.Second*5)
+						defer cancel()
+						lastValue, err := b.config.Store.GetLast(ctx, userID)
+						if err != nil {
+							log.Printf("[ERROR] failed to get last value, %s", err)
+						} else {
+							ctx, cancel := context.WithTimeout(context.TODO(), time.Second*5)
+							defer cancel()
+
+							err = b.config.Store.Put(ctx, value)
+							if err != nil {
+								log.Printf("[ERROR] failed to put data into database")
+							}
+						}
+
+						msgConfig := tgbotapiv5.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Прошлое: %d г.\r\nТекущее: %d г.\r\n---------\r\nРазница: %d г.", lastValue, value.Value, value.Value-lastValue))
+						b.botAPI.Request(msgConfig)
+
+					}
 
 				}
 			}

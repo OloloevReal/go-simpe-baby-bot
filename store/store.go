@@ -2,35 +2,69 @@ package store
 
 import (
 	"context"
+	"fmt"
+	"log"
+	"strconv"
+	"strings"
 	"time"
-
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type MongoDb struct {
-	client *mongo.Client
-	db     *mongo.Database
+type Store interface {
+	Put(context.Context, *BValue) error
+	GetLast(ctx context.Context, userID int) (int, error)
 }
 
-func NewMongoDB(mgoURL string, mgoDB string) (store Store, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mgoURL))
-	if err != nil {
-		return
-	}
-
-	err = client.Ping(ctx, nil)
-	if err != nil {
-		return
-	}
-
-	store = &MongoDb{client: client, db: client.Database(mgoDB)}
-	return store, err
+type StoreUser interface {
+	AddUser(ctx context.Context, user *BUsers) error
+	GetUser(ctx context.Context, id int) (*BUsers, error)
 }
 
-func (m *MongoDb) Put(context.Context) error {
-	return nil
+type BUsers struct {
+	TUser `json:"t_user,omitempty"`
+	//Enable bool `json:"enable,omitempty"`
+}
+
+type BValue struct {
+	Timestamp time.Time `json:"timestamp,omitempty"`
+	UserID    int       `json:"user_id,omitempty"`
+	Value     int       `json:"value,omitempty"`
+}
+
+type TUser struct {
+	ID           int    `json:"id" bson:"id"`
+	FirstName    string `json:"first_name" bson:"first_name"`
+	LastName     string `json:"last_name" bson:"last_name"`         // optional
+	UserName     string `json:"username" bson:"username"`           // optional
+	LanguageCode string `json:"language_code" bson:"language_code"` // optional
+	IsBot        bool   `json:"is_bot" bson:"is_bot"`               // optional
+}
+
+func (v *BValue) ParseValue(value string) (err error) {
+
+	if v == nil {
+		return fmt.Errorf("source object is nil, make before using")
+	}
+
+	if strings.Contains(value, ",") && strings.Count(value, ",") == 1 {
+		value = strings.Replace(value, ",", ".", 1)
+	}
+
+	if strings.Contains(value, ".") {
+		f32, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return fmt.Errorf("failed to convert entered value to float type, \"%s\", %s", value, err)
+		}
+		log.Printf("[DEBUG] converted float value: %f", f32)
+		i32 := int(f32 * 1000)
+		v.Value = i32
+	} else {
+		v64, err := strconv.ParseInt(value, 0, 64)
+		if err != nil {
+			return fmt.Errorf("failed to convert entered value to int type, \"%s\", %s", value, err)
+		}
+
+		v.Value = int(v64)
+	}
+
+	return
 }

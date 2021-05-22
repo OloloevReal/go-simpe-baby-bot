@@ -15,7 +15,7 @@ import (
 	"golang.org/x/net/proxy"
 )
 
-const version = "0.0.1"
+const version = "0.0.2"
 
 type AppEnvs struct {
 	Port          string `env:"PORT"`
@@ -95,10 +95,12 @@ func main() {
 		}
 	}
 
-	bot, err := telegram.NewTelegram(&telegram.TelegramConfig{Token: envs.TelegramToken,
+	bot, err := telegram.NewTelegram(&telegram.TelegramConfig{
+		Token:   envs.TelegramToken,
 		Proxy:   prxy,
 		Debug:   envs.Debug,
 		Timeout: time.Second * 7,
+		Store:   store,
 	})
 	if err != nil {
 		log.Fatalf("[FATAL] failed to make a telegram bot")
