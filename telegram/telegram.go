@@ -131,9 +131,13 @@ func (b *TelegramBot) Run(ctx context.Context) {
 							}
 						}
 
-						msgConfig := tgbotapiv5.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Прошлое: %d г.\r\nТекущее: %d г.\r\n---------\r\nРазница: %d г.", lastValue, value.Value, value.Value-lastValue))
+						resultValue := value.Value - lastValue
+						status := "📈"
+						if resultValue < 0 {
+							status = "📉"
+						}
+						msgConfig := tgbotapiv5.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Прошлое: %d г.\r\nТекущее: %d г.\r\n---------\r\nРазница: %d г. %s", lastValue, value.Value, resultValue, status))
 						b.botAPI.Request(msgConfig)
-
 					}
 
 				}
