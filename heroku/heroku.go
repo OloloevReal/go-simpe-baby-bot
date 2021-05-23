@@ -10,14 +10,22 @@ import (
 )
 
 type AppHeroku struct {
-	ServiceURL string
-	Port       string
-	Ctx        context.Context
+	ServiceURL   string
+	Port         string
+	Ctx          context.Context
+	responseText string
 }
 
 func (app *AppHeroku) RunKeepAlive() {
+	if len(app.responseText) == 0 {
+		app.responseText = "Hi there!"
+	}
 	app.runHerokuAlive(app.Ctx)
 	app.runHerokuHandler(app.Ctx)
+}
+
+func (app *AppHeroku) SetText(text string) {
+	app.responseText = text
 }
 
 func (app *AppHeroku) runHerokuAlive(ctx context.Context) {
@@ -30,7 +38,7 @@ func (app *AppHeroku) runHerokuAlive(ctx context.Context) {
 	go func() {
 		defer log.Printf("Closed Heroku alive func, %s", app.ServiceURL)
 		for {
-			t = time.NewTicker(5 * time.Minute)
+			t = time.NewTicker(10 * time.Minute)
 			select {
 			case <-t.C:
 				{
@@ -49,7 +57,7 @@ func (app *AppHeroku) runHerokuAlive(ctx context.Context) {
 func (app *AppHeroku) runHerokuHandler(ctx context.Context) {
 	log.Println("Starting Heroku http handler")
 	fnHandler := func(resp http.ResponseWriter, _ *http.Request) {
-		resp.Write([]byte("Hi there! I'm go-simple-baby-bot!"))
+		resp.Write([]byte(app.responseText))
 	}
 
 	mux := http.NewServeMux()

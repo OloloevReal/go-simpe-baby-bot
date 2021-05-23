@@ -76,6 +76,8 @@ func main() {
 		Ctx:        ctx,
 	}
 
+	herroku.SetText("Hi there! I'm go-simple-baby-bot!")
+
 	if len(envs.ServiceURL) > 1 {
 		herroku.RunKeepAlive()
 	} else {
