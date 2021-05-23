@@ -13,6 +13,7 @@ import (
 
 const (
 	mongoValues = "values"
+	mongoUsers  = "users"
 )
 
 type MongoDb struct {
@@ -55,5 +56,10 @@ func (m *MongoDb) GetLast(ctx context.Context, userID int) (value int, err error
 		return value, fmt.Errorf("failed to decode got value from db, %s", err)
 	}
 	value = bvalue.Value
+	return
+}
+
+func (m *MongoDb) AddUser(ctx context.Context, user *TUser) (err error) {
+	_, err = m.db.Collection(mongoUsers).InsertOne(ctx, user)
 	return
 }

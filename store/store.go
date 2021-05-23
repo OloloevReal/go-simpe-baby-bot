@@ -12,16 +12,12 @@ import (
 type Store interface {
 	Put(context.Context, *BValue) error
 	GetLast(ctx context.Context, userID int) (int, error)
+	StoreUser
 }
 
 type StoreUser interface {
-	AddUser(ctx context.Context, user *BUsers) error
-	GetUser(ctx context.Context, id int) (*BUsers, error)
-}
-
-type BUsers struct {
-	TUser `json:"t_user,omitempty"`
-	//Enable bool `json:"enable,omitempty"`
+	AddUser(ctx context.Context, user *TUser) error
+	//GetUser(ctx context.Context, id int) (*TUsers, error)
 }
 
 type BValue struct {

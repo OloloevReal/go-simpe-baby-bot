@@ -98,7 +98,7 @@ func (b *TelegramBot) Run(ctx context.Context) {
 						log.Printf("[ERROR] can't find handler for command=\"%s\"", cmd)
 						continue
 					}
-					_ = handler
+					handler(&update)
 
 				} else if update.Message != nil && len(update.Message.Text) > 0 {
 					var userID int
@@ -121,14 +121,14 @@ func (b *TelegramBot) Run(ctx context.Context) {
 						lastValue, err := b.config.Store.GetLast(ctx, userID)
 						if err != nil {
 							log.Printf("[ERROR] failed to get last value, %s", err)
-						} else {
-							ctx, cancel := context.WithTimeout(context.TODO(), time.Second*5)
-							defer cancel()
+						}
 
-							err = b.config.Store.Put(ctx, value)
-							if err != nil {
-								log.Printf("[ERROR] failed to put data into database")
-							}
+						ctx, cancel = context.WithTimeout(context.TODO(), time.Second*5)
+						defer cancel()
+
+						err = b.config.Store.Put(ctx, value)
+						if err != nil {
+							log.Printf("[ERROR] failed to put data into database")
 						}
 
 						resultValue := value.Value - lastValue
@@ -152,7 +152,7 @@ func (b *TelegramBot) Run(ctx context.Context) {
 
 func (b *TelegramBot) makeHandlers() {
 	b.AddHandler(commandHelp, nil)
-	b.AddHandler(commandStart, nil)
+	b.AddHandler(commandStart, b.handlerStart)
 }
 
 func (b *TelegramBot) AddHandler(cmd string, fn handler) {
@@ -198,4 +198,33 @@ func (b *TelegramBot) getUserID(update *tgbotapiv5.Update) (userID int, err erro
 	}
 	err = fmt.Errorf("update object is nil")
 	return
+}
+
+func (b *TelegramBot) getUser(update *tgbotapiv5.Update) (user *tgbotapiv5.User, err error) {
+	if update != nil {
+		if update.Message != nil {
+			user = update.Message.From
+		} else if update.CallbackQuery != nil {
+			user = update.CallbackQuery.From
+		} else {
+			err = fmt.Errorf("can't to determine User")
+		}
+		return
+	}
+	err = fmt.Errorf("update object is nil")
+	return
+}
+
+func (b *TelegramBot) handlerStart(update *tgbotapiv5.Update) {
+	chatID, _ := b.getChatID(update)
+	text := "Отправь мне вес в граммах и я сохраню его и пришлю разницу с прошлым измерением.\r\n\r\nНапример: 3001 или 4.058 или 5,140"
+	b.botAPI.Request(tgbotapiv5.NewMessage(chatID, text))
+
+	user, err := b.getUser(update)
+	if err != nil {
+
+	}
+	_ = user
+
+	b.config.Store.AddUser(context.TODO(), (*store.TUser)(user))
 }
