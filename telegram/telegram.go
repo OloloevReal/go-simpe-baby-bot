@@ -20,6 +20,10 @@ const (
 	commandHelp  = "/help"
 )
 
+const (
+	respError = "Введите значение, например: 3001 или 4.058 или 5,140"
+)
+
 var commandDescription = map[string]string{
 	commandStart: "Start bot",
 	commandHelp:  "Available commands",
@@ -114,6 +118,8 @@ func (b *TelegramBot) Run(ctx context.Context) {
 
 					if err := value.ParseValue(update.Message.Text); err != nil {
 						log.Printf("[ERROR] %s", err)
+						msg := tgbotapiv5.NewMessage(update.Message.Chat.ID, respError)
+						b.botAPI.Request(msg)
 					} else {
 
 						ctx, cancel := context.WithTimeout(context.TODO(), time.Second*5)
