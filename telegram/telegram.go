@@ -143,6 +143,21 @@ func (b *TelegramBot) Run(ctx context.Context) {
 							status = "📉"
 						}
 						msgConfig := tgbotapiv5.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Прошлое: %d г.\r\nТекущее: %d г.\r\n---------\r\nРазница: %d г. %s", lastValue, value.Value, resultValue, status))
+						if b.isAdmin(userID) {
+							row := tgbotapiv5.NewInlineKeyboardRow(
+								tgbotapiv5.NewInlineKeyboardButtonData(
+									"⏰ 10 минут",
+									"cmd10min",
+								),
+								tgbotapiv5.NewInlineKeyboardButtonData(
+									"⏰ 20 минут",
+									"cmd20min",
+								),
+							)
+							inlineKb := new(tgbotapiv5.InlineKeyboardMarkup)
+							inlineKb.InlineKeyboard = append(inlineKb.InlineKeyboard, row)
+							msgConfig.ReplyMarkup = inlineKb
+						}
 						b.botAPI.Request(msgConfig)
 					}
 
@@ -157,7 +172,7 @@ func (b *TelegramBot) Run(ctx context.Context) {
 }
 
 func (b *TelegramBot) makeHandlers() {
-	b.AddHandler(commandHelp, nil)
+	b.AddHandler(commandHelp, b.handlerHelp)
 	b.AddHandler(commandStart, b.handlerStart)
 }
 
@@ -233,4 +248,14 @@ func (b *TelegramBot) handlerStart(update *tgbotapiv5.Update) {
 	_ = user
 
 	b.config.Store.AddUser(context.TODO(), (*store.TUser)(user))
+}
+
+func (b *TelegramBot) handlerHelp(update *tgbotapiv5.Update) {
+
+}
+
+var adminID int = 985025
+
+func (b *TelegramBot) isAdmin(id int) bool {
+	return id == adminID
 }

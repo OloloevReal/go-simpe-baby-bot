@@ -15,7 +15,7 @@ import (
 	"golang.org/x/net/proxy"
 )
 
-const version = "0.0.3"
+const version = "0.0.4"
 
 type AppEnvs struct {
 	Port          string `env:"PORT"`
